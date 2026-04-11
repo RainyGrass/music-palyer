@@ -1,7 +1,7 @@
-# Tauri + SvelteKit
+# 王浩音乐播放器
 
-This template should help get you started developing with Tauri and SvelteKit in Vite.
+> 这是一个为了专门满足我兄弟WH的看片需求而做的软件(~~嘘...，不要告诉别人哟~~)
 
-## Recommended IDE Setup
-
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+技术栈 ：`vite+tauri2+svelte5`
+组件库 ：`tailwindcss`
+包管理器 ：`bun`
