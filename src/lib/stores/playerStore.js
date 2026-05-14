@@ -1,6 +1,5 @@
 // src/lib/stores/playerStore.js
 import { writable, derived } from "svelte/store";
-import { readFile } from "@tauri-apps/plugin-fs";
 
 export const playlist = writable([]);
 export const currentIndex = writable(-1);
@@ -10,6 +9,7 @@ export const playbackRate = writable(1);
 export const currentTime = writable(0);
 export const duration = writable(0);
 export const playMode = writable("all"); // 'all' | 'loop' | 'random'
+export const lyricOffset = writable(0); // 歌词延迟（秒），负=提前，正=延后
 
 export const currentSong = derived(
   [playlist, currentIndex],
@@ -146,6 +146,7 @@ function saveState() {
       playlist: getStoreValue(playlist),
       volume: getStoreValue(volume),
       playMode: getStoreValue(playMode),
+      lyricOffset: getStoreValue(lyricOffset),
     };
     localStorage.setItem("music-player-state", JSON.stringify(state));
   } catch (e) {
@@ -153,12 +154,11 @@ function saveState() {
   }
 }
 
-// 订阅变更自动保存
 playlist.subscribe(() => saveState());
 volume.subscribe(() => saveState());
 playMode.subscribe(() => saveState());
+lyricOffset.subscribe(() => saveState());
 
-// 导出恢复函数，供页面调用
 export function restoreState() {
   try {
     const raw = localStorage.getItem("music-player-state");
@@ -172,6 +172,7 @@ export function restoreState() {
       if (audio) audio.volume = state.volume;
     }
     if (state.playMode) playMode.set(state.playMode);
+    if (state.lyricOffset !== undefined) lyricOffset.set(state.lyricOffset);
   } catch (e) {
     console.error("恢复状态失败", e);
   }

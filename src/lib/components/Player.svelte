@@ -8,6 +8,7 @@
     currentTime,
     duration,
     playMode,
+    lyricOffset,
     togglePlay,
     nextTrack,
     prevTrack,
@@ -19,12 +20,38 @@
 
   const rateOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
   let showLyrics = false;
+  let lyricsContainer;
 
   const modeLabels = {
     all: "列表循环",
     loop: "单曲循环",
     random: "随机播放",
   };
+
+  /**
+   * 计算当前应高亮的歌词行索引
+   */
+  $: currentLyricIndex = (() => {
+    if (!$currentSong?.lyrics || $currentSong.lyrics.length === 0) return -1;
+    const time = $currentTime + $lyricOffset;
+    let idx = 0;
+    for (let i = 0; i < $currentSong.lyrics.length; i++) {
+      if ($currentSong.lyrics[i].time <= time) {
+        idx = i;
+      } else {
+        break;
+      }
+    }
+    return idx;
+  })();
+
+  // 当前行变化时自动滚动到视口中央
+  $: if (lyricsContainer && currentLyricIndex >= 0) {
+    const activeLine = lyricsContainer.children[currentLyricIndex];
+    if (activeLine) {
+      activeLine.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
 
   function formatTime(seconds) {
     if (isNaN(seconds) || seconds < 0) return "00:00";
@@ -43,6 +70,17 @@
 
   function handleRate(e) {
     setPlaybackRate(parseFloat(e.target.value));
+  }
+
+  function handleOffset(e) {
+    lyricOffset.set(parseFloat(e.target.value));
+  }
+
+  /**
+   * 点击某行歌词，跳转到对应时间
+   */
+  function seekToLyric(time) {
+    seekTo(Math.max(0, time - $lyricOffset));
   }
 </script>
 
@@ -160,11 +198,12 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-      class="bg-base-100 rounded-2xl p-8 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+      class="bg-base-100 rounded-2xl p-6 max-w-lg w-full mx-4 max-h-[85vh] flex flex-col"
       onclick={(e) => e.stopPropagation()}
     >
-      <div class="flex justify-center mb-6">
-        <div class="w-48 h-48 rounded-xl overflow-hidden bg-base-200 flex items-center justify-center">
+      <!-- 封面大图 -->
+      <div class="flex justify-center mb-4 flex-shrink-0">
+        <div class="w-40 h-40 rounded-xl overflow-hidden bg-base-200 flex items-center justify-center">
           {#if $currentSong?.cover}
             <img src={$currentSong.cover} alt="封面" class="w-full h-full object-cover" />
           {:else}
@@ -173,24 +212,65 @@
         </div>
       </div>
 
-      <h2 class="text-xl font-bold text-center">
+      <!-- 歌曲信息 -->
+      <h2 class="text-xl font-bold text-center flex-shrink-0">
         {$currentSong?.title || "未选择歌曲"}
       </h2>
-      <p class="text-center text-base-content/60 mb-4">
+      <p class="text-center text-base-content/60 mb-3 flex-shrink-0">
         {$currentSong?.artist || "未知艺术家"}
       </p>
 
-      <div class="divider">歌词</div>
-      <div class="text-center text-base-content/80 whitespace-pre-line leading-8">
-        {#if $currentSong?.lyrics}
-          {$currentSong.lyrics}
+      <!-- 歌词区域 -->
+      <div class="divider my-1 flex-shrink-0">歌词</div>
+
+      <div
+        bind:this={lyricsContainer}
+        class="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1 my-2"
+      >
+        {#if $currentSong?.lyrics && $currentSong.lyrics.length > 0}
+          {#each $currentSong.lyrics as line, i}
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <p
+              class="text-center transition-all duration-300 py-1 cursor-pointer rounded-lg hover:bg-base-200 {i === currentLyricIndex ? 'text-primary font-bold scale-105' : 'text-base-content/60'}"
+              onclick={() => seekToLyric(line.time)}
+              title="点击跳转到此句"
+            >
+              {line.text}
+            </p>
+          {/each}
         {:else}
-          <p class="text-base-content/40">暂无歌词</p>
+          <p class="text-center text-base-content/40 py-10">暂无歌词</p>
         {/if}
       </div>
 
-      <div class="flex justify-center mt-6">
-        <button class="btn btn-ghost" onclick={() => (showLyrics = false)}>关闭</button>
+      <!-- 延迟调整 -->
+      {#if $currentSong?.lyrics && $currentSong.lyrics.length > 0}
+        <div class="divider my-1 flex-shrink-0">歌词延迟</div>
+        <div class="flex items-center justify-center gap-3 flex-shrink-0 pb-1">
+          <span class="text-xs">⏪ 提前</span>
+          <input
+            type="range"
+            min="-5"
+            max="5"
+            step="0.1"
+            value={$lyricOffset}
+            oninput={handleOffset}
+            class="range range-primary range-xs w-40"
+          />
+          <span class="text-xs">延后 ⏩</span>
+        </div>
+        <p class="text-center text-xs text-base-content/50 flex-shrink-0">
+          偏移：{$lyricOffset > 0 ? "+" : ""}{$lyricOffset.toFixed(1)}s
+          <span class="text-base-content/30 ml-2">（点击歌词行可跳转）</span>
+        </p>
+      {/if}
+
+      <!-- 关闭按钮 -->
+      <div class="flex justify-center mt-3 flex-shrink-0">
+        <button class="btn btn-ghost btn-sm" onclick={() => (showLyrics = false)}>
+          关闭
+        </button>
       </div>
     </div>
   </div>

@@ -1,7 +1,7 @@
 <!-- src/lib/pages/Collection.svelte -->
 <script>
   import { open } from "@tauri-apps/plugin-dialog";
-  import { readDir } from "@tauri-apps/plugin-fs";
+  import { readDir, readTextFile } from "@tauri-apps/plugin-fs";
   import { convertFileSrc } from "@tauri-apps/api/core";
   import {
     playlist,
@@ -12,49 +12,130 @@
   } from "../stores/playerStore.js";
 
   const AUDIO_EXTS = [".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac", ".wma"];
+  const IMAGE_EXTS = [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif"];
+  const LRC_EXTS = [".lrc"];
+  const COVER_NAMES = ["cover", "folder", "front", "album", "art"];
 
   let songs = [];
   let selectedFolder = "";
   let scanning = false;
   let searchQuery = "";
 
-  /**
-   * 路径规范化：把 Windows 反斜杠全部换成正斜杠
-   * 避免 D:\xxx/xxx 这种混合路径导致 Tauri asset 协议 500
-   */
   function normalizePath(path) {
     return path.replace(/\\/g, "/").replace(/\/+$/, "");
   }
 
+  /**
+   * 解析 LRC 歌词文本
+   * 支持多时间标签 [00:00.00][00:05.00]歌词
+   */
+  function parseLrc(lrcText) {
+    if (!lrcText) return null;
+    const lines = lrcText.split("\n");
+    const result = [];
+    const timeRegex = /\[(\d{2}):(\d{2})(?:\.(\d{2,3}))?\]/g;
+
+    for (const line of lines) {
+      const times = [];
+      let match;
+      while ((match = timeRegex.exec(line)) !== null) {
+        const min = parseInt(match[1], 10);
+        const sec = parseInt(match[2], 10);
+        const msStr = match[3] || "00";
+        const ms = parseInt(msStr.padEnd(3, "0"), 10);
+        times.push(min * 60 + sec + ms / 1000);
+      }
+
+      if (times.length > 0) {
+        const text = line.replace(timeRegex, "").trim();
+        if (text) {
+          for (const time of times) {
+            result.push({ time, text });
+          }
+        }
+      }
+    }
+
+    return result.sort((a, b) => a.time - b.time);
+  }
+
   async function scanDirectoryRecursive(dirPath) {
     const entries = await readDir(dirPath);
-    let audioFiles = [];
+    let currentDirAudios = [];
+    let currentDirImages = [];
+    let currentDirLyrics = new Map(); // rawName -> parsed lyrics
+    let subDirAudios = [];
 
     for (const entry of entries) {
       const normalizedDir = normalizePath(dirPath);
       const entryPath = normalizedDir + "/" + entry.name;
+      const lowerName = entry.name.toLowerCase();
 
       if (entry.isDirectory) {
-        const subFiles = await scanDirectoryRecursive(entryPath);
-        audioFiles = audioFiles.concat(subFiles);
+        const sub = await scanDirectoryRecursive(entryPath);
+        subDirAudios = subDirAudios.concat(sub);
       } else if (entry.isFile) {
-        const name = entry.name.toLowerCase();
-        if (AUDIO_EXTS.some((ext) => name.endsWith(ext))) {
+        // 收集音频
+        if (AUDIO_EXTS.some((ext) => lowerName.endsWith(ext))) {
           const rawName = entry.name.replace(/\.[^/.]+$/, "");
           const parts = rawName.split(" - ");
 
-          audioFiles.push({
+          currentDirAudios.push({
             title: parts.length > 1 ? parts[1].trim() : rawName,
             artist: parts.length > 1 ? parts[0].trim() : "未知艺术家",
             filename: entry.name,
             url: convertFileSrc(entryPath),
             cover: null,
             lyrics: null,
+            _rawName: rawName.toLowerCase(),
           });
+        }
+        // 收集图片
+        else if (IMAGE_EXTS.some((ext) => lowerName.endsWith(ext))) {
+          currentDirImages.push({
+            path: convertFileSrc(entryPath),
+            rawName: entry.name.replace(/\.[^/.]+$/, "").toLowerCase(),
+          });
+        }
+        // 收集歌词
+        else if (LRC_EXTS.some((ext) => lowerName.endsWith(ext))) {
+          try {
+            const rawName = entry.name.replace(/\.[^/.]+$/, "").toLowerCase();
+            const content = await readTextFile(entryPath);
+            const parsed = parseLrc(content);
+            if (parsed && parsed.length > 0) {
+              currentDirLyrics.set(rawName, parsed);
+            }
+          } catch (e) {
+            console.warn("读取歌词失败:", entry.name, e);
+          }
         }
       }
     }
-    return audioFiles;
+
+    // 匹配通用封面
+    let genericCover = null;
+    for (const img of currentDirImages) {
+      if (COVER_NAMES.includes(img.rawName)) {
+        genericCover = img.path;
+        break;
+      }
+    }
+
+    // 给音频匹配封面和歌词
+    for (const song of currentDirAudios) {
+      const namedCover = currentDirImages.find((img) => img.rawName === song._rawName);
+      song.cover = namedCover ? namedCover.path : genericCover;
+
+      const songLyrics = currentDirLyrics.get(song._rawName);
+      if (songLyrics) {
+        song.lyrics = songLyrics;
+      }
+
+      delete song._rawName;
+    }
+
+    return [...currentDirAudios, ...subDirAudios];
   }
 
   async function scanFolder() {
@@ -155,14 +236,18 @@
       <p class="text-lg">点击上方按钮选择音乐文件夹</p>
       <p class="text-sm mt-2">支持格式：{AUDIO_EXTS.join(", ")}</p>
       <p class="text-sm mt-1 text-base-content/40">文件名格式建议：「艺术家 - 歌曲名.mp3」</p>
-      <p class="text-xs mt-4 text-base-content/30">支持递归扫描子文件夹</p>
+      <p class="text-xs mt-4 text-base-content/30">
+        自动匹配同名封面（jpg/png）与歌词（lrc）
+      </p>
     </div>
   {/if}
 
   {#if filteredSongs.length === 0 && songs.length > 0}
     <div class="text-center py-10 text-base-content/50">
       <p class="text-lg">😕 没有找到匹配的歌曲</p>
-      <button class="btn btn-ghost btn-sm mt-2" onclick={() => (searchQuery = "")}>清除搜索</button>
+      <button class="btn btn-ghost btn-sm mt-2" onclick={() => (searchQuery = "")}>
+        清除搜索
+      </button>
     </div>
   {/if}
 
