@@ -1,9 +1,14 @@
 <!-- src/lib/pages/DataManage.svelte -->
 <script>
+  import { confirm } from "@tauri-apps/plugin-dialog";
   import { playlist } from "../stores/playerStore.js";
 
-  function clearPlaylist() {
-    if (confirm("确定要清空播放列表吗？此操作不可恢复。")) {
+  async function clearPlaylist() {
+    const confirmed = await confirm("确定要清空播放列表吗？此操作不可恢复。", {
+      title: "⚠️ 确认清空",
+      type: "warning",
+    });
+    if (confirmed) {
       playlist.set([]);
       localStorage.removeItem("savedPlaylist");
       localStorage.removeItem("lastFolder");
@@ -50,7 +55,6 @@
   <h1 class="text-2xl font-bold mb-6">📁 数据管理</h1>
 
   <div class="grid gap-4 max-w-2xl">
-    <!-- 播放列表信息 -->
     <div class="card bg-base-200">
       <div class="card-body">
         <h2 class="card-title">📋 播放列表</h2>
@@ -77,7 +81,6 @@
       </div>
     </div>
 
-    <!-- 应用信息 -->
     <div class="card bg-base-200">
       <div class="card-body">
         <h2 class="card-title">ℹ️ 关于</h2>
