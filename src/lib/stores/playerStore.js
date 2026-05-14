@@ -1,5 +1,5 @@
 // src/lib/stores/playerStore.js
-import { writable, derived, get } from "svelte/store";
+import { writable, derived } from "svelte/store";
 import { readFile } from "@tauri-apps/plugin-fs";
 
 export const playlist = writable([]);
@@ -9,8 +9,8 @@ export const volume = writable(0.8);
 export const playbackRate = writable(1);
 export const currentTime = writable(0);
 export const duration = writable(0);
+export const playMode = writable("all"); // 'all' | 'loop' | 'random'
 
-// 当前歌曲
 export const currentSong = derived(
   [playlist, currentIndex],
   ([$playlist, $currentIndex]) => {
@@ -21,16 +21,18 @@ export const currentSong = derived(
   }
 );
 
-// ========== Audio 实例 ==========
 let audio = null;
-let isChangingTrack = false;
-// 缓存已加载过的 blob URL，避免重复读取
-let blobUrlCache = {};
 
-function getAudioInstance() {
+function getStoreValue(store) {
+  let value;
+  store.subscribe((v) => (value = v))();
+  return value;
+}
+
+export function getAudio() {
   if (!audio) {
     audio = new Audio();
-    audio.volume = 0.8;
+    audio.volume = getStoreValue(volume);
 
     audio.addEventListener("timeupdate", () => {
       currentTime.set(audio.currentTime);
@@ -41,153 +43,136 @@ function getAudioInstance() {
     });
 
     audio.addEventListener("ended", () => {
-      isChangingTrack = false;
-      nextTrack();
-    });
-
-    audio.addEventListener("play", () => {
-      isPlaying.set(true);
-    });
-
-    audio.addEventListener("pause", () => {
-      isPlaying.set(false);
-    });
-
-    audio.addEventListener("error", (e) => {
-      console.error("音频加载错误:", e);
-      isChangingTrack = false;
+      const mode = getStoreValue(playMode);
+      if (mode === "loop") {
+        audio.currentTime = 0;
+        audio.play();
+      } else {
+        nextTrack();
+      }
     });
   }
   return audio;
 }
 
-/**
- * 根据文件扩展名返回 MIME 类型
- */
-function getMimeType(filename) {
-  const ext = filename.toLowerCase().split(".").pop();
-  const mimeMap = {
-    mp3: "audio/mpeg",
-    wav: "audio/wav",
-    flac: "audio/flac",
-    ogg: "audio/ogg",
-    m4a: "audio/mp4",
-    aac: "audio/aac",
-    wma: "audio/x-ms-wma",
-  };
-  return mimeMap[ext] || "audio/mpeg";
-}
-
-/**
- * 通过 Tauri fs 读取文件并创建 Blob URL
- */
-async function loadAudioFile(song) {
-  // 如果已经缓存过，直接返回
-  if (blobUrlCache[song.filePath]) {
-    return blobUrlCache[song.filePath];
-  }
-
-  const fileData = await readFile(song.filePath);
-  const mimeType = getMimeType(song.filename);
-  const blob = new Blob([fileData], { type: mimeType });
-  const blobUrl = URL.createObjectURL(blob);
-
-  // 缓存
-  blobUrlCache[song.filePath] = blobUrl;
-  return blobUrl;
-}
-
-// 播放指定索引的歌曲
-export async function playTrack(index) {
-  if (isChangingTrack) return;
-
-  const list = get(playlist);
+export function playTrack(index) {
+  const list = getStoreValue(playlist);
   if (index < 0 || index >= list.length) return;
 
-  isChangingTrack = true;
-
-  const a = getAudioInstance();
-  const song = list[index];
-
-  // 先停止当前播放
-  a.pause();
-  a.currentTime = 0;
-
   currentIndex.set(index);
+  const song = list[index];
+  const a = getAudio();
 
-  try {
-    // 通过 Tauri fs 读取文件
-    const blobUrl = await loadAudioFile(song);
-    a.src = blobUrl;
-    a.load();
-    await a.play();
-  } catch (err) {
-    console.error("播放失败:", err);
-  } finally {
-    isChangingTrack = false;
-  }
+  a.src = song.url;
+  a.load();
+  a.play();
+  isPlaying.set(true);
 }
 
-// 切换播放/暂停
 export function togglePlay() {
-  if (isChangingTrack) return;
-
-  const a = getAudioInstance();
+  const a = getAudio();
   if (!a.src) return;
 
   if (a.paused) {
-    a.play().catch((err) => {
-      console.error("播放失败:", err);
-    });
+    a.play();
+    isPlaying.set(true);
   } else {
     a.pause();
+    isPlaying.set(false);
   }
 }
 
-// 播放/暂停当前歌曲（从列表）
-export function playOrPauseCurrent(index) {
-  const idx = get(currentIndex);
-
-  if (idx === index) {
-    togglePlay();
-  } else {
-    playTrack(index);
-  }
-}
-
-// 下一首
 export function nextTrack() {
-  const list = get(playlist);
-  const idx = get(currentIndex);
+  const list = getStoreValue(playlist);
+  const idx = getStoreValue(currentIndex);
+  const mode = getStoreValue(playMode);
+
   if (list.length === 0) return;
-  playTrack((idx + 1) % list.length);
+
+  let next;
+  if (mode === "random") {
+    next = Math.floor(Math.random() * list.length);
+  } else {
+    next = (idx + 1) % list.length;
+  }
+  playTrack(next);
 }
 
-// 上一首
 export function prevTrack() {
-  const list = get(playlist);
-  const idx = get(currentIndex);
+  const list = getStoreValue(playlist);
+  const idx = getStoreValue(currentIndex);
+  const mode = getStoreValue(playMode);
+
   if (list.length === 0) return;
-  playTrack((idx - 1 + list.length) % list.length);
+
+  let prev;
+  if (mode === "random") {
+    prev = Math.floor(Math.random() * list.length);
+  } else {
+    prev = (idx - 1 + list.length) % list.length;
+  }
+  playTrack(prev);
 }
 
-// 设置音量
 export function setVolume(val) {
-  const a = getAudioInstance();
-  a.volume = Math.max(0, Math.min(1, val));
-  volume.set(a.volume);
+  const a = getAudio();
+  a.volume = val;
+  volume.set(val);
 }
 
-// 设置倍速
 export function setPlaybackRate(rate) {
-  const a = getAudioInstance();
+  const a = getAudio();
   a.playbackRate = rate;
   playbackRate.set(rate);
 }
 
-// 跳转时间
 export function seekTo(time) {
-  const a = getAudioInstance();
+  const a = getAudio();
   a.currentTime = time;
   currentTime.set(time);
+}
+
+export function togglePlayMode() {
+  const mode = getStoreValue(playMode);
+  const modes = ["all", "loop", "random"];
+  const nextIndex = (modes.indexOf(mode) + 1) % modes.length;
+  playMode.set(modes[nextIndex]);
+}
+
+// ========== 自动持久化 ==========
+function saveState() {
+  try {
+    const state = {
+      playlist: getStoreValue(playlist),
+      volume: getStoreValue(volume),
+      playMode: getStoreValue(playMode),
+    };
+    localStorage.setItem("music-player-state", JSON.stringify(state));
+  } catch (e) {
+    console.error("保存状态失败", e);
+  }
+}
+
+// 订阅变更自动保存
+playlist.subscribe(() => saveState());
+volume.subscribe(() => saveState());
+playMode.subscribe(() => saveState());
+
+// 导出恢复函数，供页面调用
+export function restoreState() {
+  try {
+    const raw = localStorage.getItem("music-player-state");
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    if (state.playlist && state.playlist.length > 0) {
+      playlist.set(state.playlist);
+    }
+    if (state.volume !== undefined) {
+      volume.set(state.volume);
+      if (audio) audio.volume = state.volume;
+    }
+    if (state.playMode) playMode.set(state.playMode);
+  } catch (e) {
+    console.error("恢复状态失败", e);
+  }
 }
