@@ -93,9 +93,7 @@ export async function checkLoginStatus() {
     console.log("[Debug] /login/status full response:", JSON.stringify(data, null, 2));
     const profile = data?.data?.profile;
     const account = data?.data?.account;
-
-    console.log("[Debug] profile:", profile);
-    console.log("[Debug] account:", account);
+    console.log("这是一个调试信号：",profile?.nickname)
     if (account?.id) {
       neteaseUser.set({
         userId: account.id,
@@ -103,6 +101,7 @@ export async function checkLoginStatus() {
         avatarUrl: profile?.avatarUrl || "",
         signature: profile?.signature || "",
       });
+      
       return true;
     }
 

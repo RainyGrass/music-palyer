@@ -1,11 +1,12 @@
 <!-- src/lib/pages/Login.svelte -->
 <script>
-  import { onDestroy } from "svelte";
+  import { onMount, onDestroy } from "svelte";
   import { navigate } from "../stores/router.js";
   import {
     apiBaseUrl,
     neteaseCookie,
     ncmFetch,
+    neteaseUser,
     checkLoginStatus,
   } from "../stores/neteaseStore.js";
 
@@ -44,6 +45,11 @@
     });
   }
 
+  onMount(() => {
+    if (activeTab === "qr") {
+      startQrLogin();
+    }
+  });
   onDestroy(() => {
     stopQrCheck();
     if (captchaTimer) clearInterval(captchaTimer);
