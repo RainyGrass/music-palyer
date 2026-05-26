@@ -17,6 +17,7 @@
     "@tauri-apps/plugin-dialog": "^2.7.0",
     "@tauri-apps/plugin-fs": "^2.5.0",
     "@tauri-apps/plugin-opener": "^2",
+    "lucide-svelte": "^1.0.1",
     "music-metadata": "^11.12.3"
   },
   "devDependencies": {

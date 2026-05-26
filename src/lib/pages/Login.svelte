@@ -1,6 +1,21 @@
 <!-- src/lib/pages/Login.svelte -->
 <script>
   import { onMount, onDestroy } from "svelte";
+  import {
+    Cloud,
+    QrCode,
+    Smartphone,
+    Mail,
+    Settings,
+    Save,
+    X,
+    RefreshCw,
+    LoaderCircle,
+    KeyRound,
+    ShieldCheck,
+    Link,
+  } from "lucide-svelte";
+
   import { navigate } from "../stores/router.js";
   import {
     apiBaseUrl,
@@ -38,6 +53,12 @@
   let loading = false;
   let errorMsg = "";
 
+  const tabs = [
+    { key: "qr", label: "二维码", icon: QrCode },
+    { key: "phone", label: "手机号", icon: Smartphone },
+    { key: "email", label: "邮箱", icon: Mail },
+  ];
+
   // 只有已保存 cookie 时才自动检查登录状态
   if ($neteaseCookie) {
     checkLoginStatus().then((ok) => {
@@ -50,6 +71,7 @@
       startQrLogin();
     }
   });
+
   onDestroy(() => {
     stopQrCheck();
     if (captchaTimer) clearInterval(captchaTimer);
@@ -73,6 +95,7 @@
       console.log("[QR] Already starting, skip");
       return;
     }
+
     isStartingQr = true;
     errorMsg = "";
     qrStatus = "正在获取二维码...";
@@ -85,6 +108,7 @@
       console.log("[QR] Key response:", keyRes);
 
       qrKey = keyRes?.data?.unikey || keyRes?.unikey;
+
       if (!qrKey) {
         throw new Error("获取二维码 Key 失败，响应中无 unikey");
       }
@@ -94,9 +118,11 @@
         key: qrKey,
         qrimg: "true",
       });
+
       console.log("[QR] Create response:", createRes);
 
       qrImg = createRes?.data?.qrimg || createRes?.qrimg;
+
       if (!qrImg) {
         throw new Error("获取二维码图片失败");
       }
@@ -127,16 +153,19 @@
       } else if (code === 803) {
         qrStatus = "登录成功！";
         qrChecking = false;
+
         if (res.cookie) neteaseCookie.set(res.cookie);
+
         // 先用 qr/check 里的 nickname（如果有）
         if (res.nickname) {
-            neteaseUser.set({
+          neteaseUser.set({
             userId: res.userId || 0,
             nickname: res.nickname,
             avatarUrl: res.avatarUrl || "",
             signature: "",
-            });
+          });
         }
+
         await checkLoginStatus();
         navigate("/");
         return;
@@ -161,6 +190,7 @@
 
   function stopQrCheck() {
     qrChecking = false;
+
     if (qrTimer) {
       clearTimeout(qrTimer);
       qrTimer = null;
@@ -176,8 +206,8 @@
   function switchTab(tab) {
     activeTab = tab;
     errorMsg = "";
+
     if (tab === "qr") {
-      // 无条件启动二维码，让 startQrLogin 内部的锁来处理重复
       startQrLogin();
     } else {
       stopQrCheck();
@@ -190,15 +220,25 @@
       errorMsg = "请输入手机号";
       return;
     }
+
     errorMsg = "";
+
     try {
       loading = true;
-      const res = await ncmFetch("/captcha/sent", { phone: phone.trim() });
+
+      const res = await ncmFetch("/captcha/sent", {
+        phone: phone.trim(),
+      });
+
       if (res?.code === 200) {
         captchaCountdown = 60;
+
         captchaTimer = setInterval(() => {
           captchaCountdown--;
-          if (captchaCountdown <= 0) clearInterval(captchaTimer);
+
+          if (captchaCountdown <= 0) {
+            clearInterval(captchaTimer);
+          }
         }, 1000);
       } else {
         errorMsg = res?.message || "发送验证码失败";
@@ -212,14 +252,17 @@
 
   async function phoneLogin() {
     errorMsg = "";
+
     if (!phone.trim()) {
       errorMsg = "请输入手机号";
       return;
     }
+
     if (phoneMode === "password" && !phonePassword) {
       errorMsg = "请输入密码";
       return;
     }
+
     if (phoneMode === "captcha" && !phoneCaptcha) {
       errorMsg = "请输入验证码";
       return;
@@ -227,7 +270,11 @@
 
     try {
       loading = true;
-      const params = { phone: phone.trim() };
+
+      const params = {
+        phone: phone.trim(),
+      };
+
       if (phoneMode === "password") {
         params.password = phonePassword;
       } else {
@@ -235,8 +282,10 @@
       }
 
       const res = await ncmFetch("/login/cellphone", params);
+
       if (res?.code === 200) {
         if (res.cookie) neteaseCookie.set(res.cookie);
+
         await checkLoginStatus();
         navigate("/");
       } else {
@@ -252,6 +301,7 @@
   // ========== 邮箱登录 ==========
   async function emailLogin() {
     errorMsg = "";
+
     if (!email.trim() || !emailPassword) {
       errorMsg = "请输入邮箱和密码";
       return;
@@ -259,12 +309,15 @@
 
     try {
       loading = true;
+
       const res = await ncmFetch("/login", {
         email: email.trim(),
         password: emailPassword,
       });
+
       if (res?.code === 200) {
         if (res.cookie) neteaseCookie.set(res.cookie);
+
         await checkLoginStatus();
         navigate("/");
       } else {
@@ -278,168 +331,248 @@
   }
 </script>
 
-<div class="p-6 pb-32 max-w-xl mx-auto">
-  <h1 class="text-2xl font-bold mb-6 text-center">☁️ 网易云音乐登录</h1>
+<div class="p-6 pb-32 min-h-full soft-gradient-bg">
+  <div class="max-w-xl mx-auto">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-3xl glass-card mb-4">
+        <Cloud size={34} class="text-primary icon-primary-glow" />
+      </div>
 
-  <div class="card bg-base-200 mb-6">
-    <div class="card-body p-4">
-      {#if editingApi}
-        <div class="flex gap-2">
-          <input
-            type="text"
-            class="input input-bordered input-sm flex-1"
-            placeholder="http://localhost:3000"
-            bind:value={apiInput}
-          />
-          <button class="btn btn-primary btn-sm" onclick={saveApi}>保存</button>
-          <button class="btn btn-ghost btn-sm" onclick={() => (editingApi = false)}>
-            取消
-          </button>
-        </div>
-      {:else}
-        <div class="flex justify-between items-center">
-          <span class="text-sm text-base-content/70">API 地址：{$apiBaseUrl}</span>
-          <button class="btn btn-ghost btn-xs" onclick={startEditApi}>修改</button>
-        </div>
-      {/if}
-      <p class="text-xs text-base-content/50 mt-1">
-        请确保已部署 NeteaseCloudMusicApi Enhanced 并开启 CORS
+      <h1 class="text-3xl font-bold flex items-center justify-center gap-2">
+        网易云音乐登录
+      </h1>
+
+      <p class="text-sm text-base-content/50 mt-2">
+        登录后可同步喜欢的歌曲、收藏歌单和在线搜索
       </p>
     </div>
-  </div>
 
-  <div class="tabs tabs-boxed justify-center mb-6">
-    <button
-      class="tab {activeTab === 'qr' ? 'tab-active' : ''}"
-      onclick={() => switchTab('qr')}
-    >
-      📷 二维码
-    </button>
-    <button
-      class="tab {activeTab === 'phone' ? 'tab-active' : ''}"
-      onclick={() => switchTab('phone')}
-    >
-      📱 手机号
-    </button>
-    <button
-      class="tab {activeTab === 'email' ? 'tab-active' : ''}"
-      onclick={() => switchTab('email')}
-    >
-      📧 邮箱
-    </button>
-  </div>
+    <!-- API 设置 -->
+    <div class="card glass-card glass-hover mb-6">
+      <div class="card-body p-4">
+        {#if editingApi}
+          <div class="flex gap-2">
+            <label class="input input-bordered input-sm flex-1 bg-base-100/60 flex items-center gap-2">
+              <Link size={15} class="text-base-content/50" />
+              <input
+                type="text"
+                placeholder="http://localhost:3000"
+                bind:value={apiInput}
+                class="grow"
+              />
+            </label>
 
-  {#if errorMsg}
-    <div class="alert alert-error mb-4 text-sm">
-      <span>{errorMsg}</span>
-    </div>
-  {/if}
-
-  {#if activeTab === 'qr'}
-    <div class="card bg-base-200">
-      <div class="card-body items-center text-center">
-        {#if qrImg}
-          <div class="bg-white p-3 rounded-xl mb-3">
-            <img src={qrImg} alt="二维码" class="w-48 h-48" />
-          </div>
-          <p class="text-base-content/80 mb-2">{qrStatus}</p>
-          {#if !qrChecking && qrStatus.includes("过期")}
-            <button class="btn btn-primary btn-sm" onclick={refreshQr}>
-              刷新二维码
+            <button class="btn btn-primary btn-sm gap-1 rounded-full" onclick={saveApi}>
+              <Save size={15} />
+              保存
             </button>
-          {/if}
-        {:else}
-          <div class="w-48 h-48 bg-base-300 rounded-xl flex items-center justify-center mb-3">
-            <span class="loading loading-spinner loading-lg text-primary"></span>
+
+            <button
+              class="btn btn-ghost btn-sm btn-circle icon-btn-glass"
+              onclick={() => (editingApi = false)}
+              title="取消"
+            >
+              <X size={16} />
+            </button>
           </div>
-          <p class="text-base-content/60">{qrStatus || "正在加载..."}</p>
+        {:else}
+          <div class="flex justify-between items-center gap-3">
+            <div class="min-w-0">
+              <div class="flex items-center gap-2 text-sm text-base-content/70">
+                <Settings size={16} class="text-primary" />
+                <span class="truncate">API 地址：{$apiBaseUrl}</span>
+              </div>
+              <p class="text-xs text-base-content/40 mt-1">
+                请确保已部署 NeteaseCloudMusicApi 并开启 CORS
+              </p>
+            </div>
+
+            <button class="btn btn-ghost btn-xs rounded-full glass-hover" onclick={startEditApi}>
+              修改
+            </button>
+          </div>
         {/if}
       </div>
     </div>
-  {/if}
 
-  {#if activeTab === 'phone'}
-    <div class="card bg-base-200">
-      <div class="card-body gap-4">
-        <input
-          type="tel"
-          class="input input-bordered"
-          placeholder="手机号"
-          bind:value={phone}
-        />
-
-        <div class="flex gap-2">
+    <!-- Tabs -->
+    <div class="glass-card rounded-3xl p-2 mb-6">
+      <div class="grid grid-cols-3 gap-2">
+        {#each tabs as tab (tab.key)}
+          {@const Icon = tab.icon}
           <button
-            class="btn btn-xs {phoneMode === 'password' ? 'btn-active' : 'btn-ghost'}"
-            onclick={() => (phoneMode = 'password')}
+            class="btn btn-sm rounded-2xl gap-2
+            {activeTab === tab.key ? 'btn-primary shadow-lg shadow-primary/20' : 'btn-ghost glass-hover'}"
+            onclick={() => switchTab(tab.key)}
           >
-            密码登录
+            <Icon size={16} />
+            {tab.label}
           </button>
+        {/each}
+      </div>
+    </div>
+
+    {#if errorMsg}
+      <div class="alert alert-error mb-4 glass-card">
+        <span>{errorMsg}</span>
+      </div>
+    {/if}
+
+    {#if activeTab === "qr"}
+      <div class="card glass-card">
+        <div class="card-body items-center text-center">
+          <div class="w-56 h-56 rounded-3xl glass-card flex items-center justify-center overflow-hidden">
+            {#if qrImg}
+              <div class="bg-white p-3 rounded-2xl">
+                <img src={qrImg} alt="二维码" class="w-48 h-48" />
+              </div>
+            {:else}
+              <LoaderCircle size={42} class="text-primary animate-spin" />
+            {/if}
+          </div>
+
+          <p class="text-base-content/80 mt-4 min-h-6">
+            {qrStatus || "正在加载二维码..."}
+          </p>
+
+          <p class="text-xs text-base-content/40">
+            使用网易云音乐 APP 扫码确认登录
+          </p>
+
           <button
-            class="btn btn-xs {phoneMode === 'captcha' ? 'btn-active' : 'btn-ghost'}"
-            onclick={() => (phoneMode = 'captcha')}
+            class="btn btn-outline btn-sm gap-2 rounded-full mt-2 glass-hover"
+            onclick={refreshQr}
+            disabled={isStartingQr}
           >
-            验证码登录
+            {#if isStartingQr}
+              <LoaderCircle size={15} class="animate-spin" />
+            {:else}
+              <RefreshCw size={15} />
+            {/if}
+            刷新二维码
           </button>
         </div>
+      </div>
+    {/if}
 
-        {#if phoneMode === 'password'}
-          <input
-            type="password"
-            class="input input-bordered"
-            placeholder="密码"
-            bind:value={phonePassword}
-          />
-        {:else}
-          <div class="flex gap-2">
+    {#if activeTab === "phone"}
+      <div class="card glass-card">
+        <div class="card-body gap-4">
+          <label class="input input-bordered bg-base-100/60 flex items-center gap-2">
+            <Smartphone size={18} class="text-base-content/50" />
             <input
-              type="text"
-              class="input input-bordered flex-1"
-              placeholder="验证码"
-              bind:value={phoneCaptcha}
+              type="tel"
+              placeholder="手机号"
+              bind:value={phone}
+              class="grow"
             />
+          </label>
+
+          <div class="grid grid-cols-2 gap-2">
             <button
-              class="btn btn-outline"
-              onclick={sendCaptcha}
-              disabled={captchaCountdown > 0 || loading}
+              class="btn btn-sm rounded-2xl gap-2
+              {phoneMode === 'password' ? 'btn-primary' : 'btn-ghost glass-hover'}"
+              onclick={() => (phoneMode = "password")}
             >
-              {captchaCountdown > 0 ? `${captchaCountdown}s` : "获取验证码"}
+              <KeyRound size={15} />
+              密码登录
+            </button>
+
+            <button
+              class="btn btn-sm rounded-2xl gap-2
+              {phoneMode === 'captcha' ? 'btn-primary' : 'btn-ghost glass-hover'}"
+              onclick={() => (phoneMode = "captcha")}
+            >
+              <ShieldCheck size={15} />
+              验证码登录
             </button>
           </div>
-        {/if}
 
-        <button class="btn btn-primary w-full" onclick={phoneLogin} disabled={loading}>
-          {#if loading}
-            <span class="loading loading-spinner loading-sm"></span>
-          {/if}
-          登录
-        </button>
-      </div>
-    </div>
-  {/if}
+          {#if phoneMode === "password"}
+            <label class="input input-bordered bg-base-100/60 flex items-center gap-2">
+              <KeyRound size={18} class="text-base-content/50" />
+              <input
+                type="password"
+                placeholder="密码"
+                bind:value={phonePassword}
+                class="grow"
+              />
+            </label>
+          {:else}
+            <div class="flex gap-2">
+              <label class="input input-bordered bg-base-100/60 flex-1 flex items-center gap-2">
+                <ShieldCheck size={18} class="text-base-content/50" />
+                <input
+                  type="text"
+                  placeholder="验证码"
+                  bind:value={phoneCaptcha}
+                  class="grow"
+                />
+              </label>
 
-  {#if activeTab === 'email'}
-    <div class="card bg-base-200">
-      <div class="card-body gap-4">
-        <input
-          type="email"
-          class="input input-bordered"
-          placeholder="网易邮箱（如 xxx@163.com）"
-          bind:value={email}
-        />
-        <input
-          type="password"
-          class="input input-bordered"
-          placeholder="密码"
-          bind:value={emailPassword}
-        />
-        <button class="btn btn-primary w-full" onclick={emailLogin} disabled={loading}>
-          {#if loading}
-            <span class="loading loading-spinner loading-sm"></span>
+              <button
+                class="btn btn-outline rounded-full"
+                onclick={sendCaptcha}
+                disabled={captchaCountdown > 0 || loading}
+              >
+                {captchaCountdown > 0 ? `${captchaCountdown}s` : "获取验证码"}
+              </button>
+            </div>
           {/if}
-          登录
-        </button>
+
+          <button
+            class="btn btn-primary w-full rounded-full gap-2 shadow-lg shadow-primary/25"
+            onclick={phoneLogin}
+            disabled={loading}
+          >
+            {#if loading}
+              <LoaderCircle size={17} class="animate-spin" />
+            {:else}
+              <Cloud size={17} />
+            {/if}
+            登录
+          </button>
+        </div>
       </div>
-    </div>
-  {/if}
+    {/if}
+
+    {#if activeTab === "email"}
+      <div class="card glass-card">
+        <div class="card-body gap-4">
+          <label class="input input-bordered bg-base-100/60 flex items-center gap-2">
+            <Mail size={18} class="text-base-content/50" />
+            <input
+              type="email"
+              placeholder="网易邮箱，例如 xxx@163.com"
+              bind:value={email}
+              class="grow"
+            />
+          </label>
+
+          <label class="input input-bordered bg-base-100/60 flex items-center gap-2">
+            <KeyRound size={18} class="text-base-content/50" />
+            <input
+              type="password"
+              placeholder="密码"
+              bind:value={emailPassword}
+              class="grow"
+            />
+          </label>
+
+          <button
+            class="btn btn-primary w-full rounded-full gap-2 shadow-lg shadow-primary/25"
+            onclick={emailLogin}
+            disabled={loading}
+          >
+            {#if loading}
+              <LoaderCircle size={17} class="animate-spin" />
+            {:else}
+              <Cloud size={17} />
+            {/if}
+            登录
+          </button>
+        </div>
+      </div>
+    {/if}
+  </div>
 </div>

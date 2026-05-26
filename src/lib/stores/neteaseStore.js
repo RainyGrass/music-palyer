@@ -258,19 +258,40 @@ export async function fetchNcmSongUrls(ids = []) {
 }
 
 /**
- * 只给指定歌曲补充播放地址
+ * 给单首网易云歌曲补充播放地址和歌词
  */
 export async function prepareNcmSongForPlay(song) {
   if (!song?.id) return song;
 
-  if (song.url) return song;
+  let nextSong = { ...song };
 
-  const urlMap = await fetchNcmSongUrls([song.id]);
+  try {
+    // 1. 补充播放地址
+    if (!nextSong.url) {
+      const urlMap = await fetchNcmSongUrls([nextSong.id]);
 
-  return {
-    ...song,
-    url: urlMap.get(song.id) || "",
-  };
+      nextSong = {
+        ...nextSong,
+        url: urlMap.get(nextSong.id) || "",
+      };
+    }
+
+    // 2. 补充歌词
+    // lyrics 为 null 或 undefined 时才请求，避免重复请求
+    if (nextSong.lyrics === null || nextSong.lyrics === undefined) {
+      const lyrics = await fetchNcmLyrics(nextSong.id);
+
+      nextSong = {
+        ...nextSong,
+        lyrics,
+      };
+    }
+
+    return nextSong;
+  } catch (e) {
+    console.warn("准备网易云歌曲失败", e);
+    return nextSong;
+  }
 }
 
 /**
@@ -523,5 +544,101 @@ export async function fetchPlaylistSongs(playlistId, limit = 50, offset = 0) {
     return [];
   } finally {
     ncmLoading.set(false);
+  }
+}
+
+/**
+ * 解析 LRC 歌词
+ * 返回格式：
+ * [
+ *   { time: 12.34, text: "歌词内容" }
+ * ]
+ */
+export function parseLrc(lrcText) {
+  if (!lrcText || typeof lrcText !== "string") return [];
+
+  const lines = lrcText.split("\n");
+  const result = [];
+
+  // 支持：
+  // [00:12.34]歌词
+  // [00:12.345]歌词
+  // [00:12]歌词
+  // [00:12.34][00:15.67]歌词
+  const timeRegex = /\[(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?\]/g;
+
+  for (const line of lines) {
+    const times = [];
+    let match;
+
+    while ((match = timeRegex.exec(line)) !== null) {
+      const min = parseInt(match[1], 10);
+      const sec = parseInt(match[2], 10);
+      const msText = match[3] || "0";
+      const ms = parseInt(msText.padEnd(3, "0"), 10);
+
+      times.push(min * 60 + sec + ms / 1000);
+    }
+
+    const text = line.replace(timeRegex, "").trim();
+
+    if (times.length > 0 && text) {
+      for (const time of times) {
+        result.push({
+          time,
+          text,
+        });
+      }
+    }
+  }
+
+  return result.sort((a, b) => a.time - b.time);
+}
+/**
+ * 合并原歌词和翻译歌词
+ */
+export function mergeTranslatedLyrics(mainLyrics = [], translatedLyrics = []) {
+  if (!mainLyrics.length) return translatedLyrics;
+  if (!translatedLyrics.length) return mainLyrics;
+
+  return mainLyrics.map((line) => {
+    const translated = translatedLyrics.find(
+      (t) => Math.abs(t.time - line.time) < 0.3
+    );
+
+    if (translated?.text && translated.text !== line.text) {
+      return {
+        ...line,
+        text: `${line.text}\n${translated.text}`,
+      };
+    }
+
+    return line;
+  });
+}
+
+/**
+ * 获取网易云歌词
+ */
+export async function fetchNcmLyrics(songId) {
+  if (!songId) return [];
+
+  try {
+    const res = await ncmFetch("/lyric", {
+      id: songId,
+    });
+
+    const rawLrc = res?.lrc?.lyric || "";
+    const rawTransLrc = res?.tlyric?.lyric || "";
+
+    const mainLyrics = parseLrc(rawLrc);
+    const translatedLyrics = parseLrc(rawTransLrc);
+
+    const mergedLyrics = mergeTranslatedLyrics(mainLyrics, translatedLyrics);
+
+    return mergedLyrics;
+  } catch (e) {
+    console.warn("获取网易云歌词失败", e);
+    return [];
   }
 }
