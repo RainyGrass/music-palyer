@@ -3,12 +3,12 @@
   import { currentRoute, navigate } from "../stores/router.js";
   import { neteaseUser } from "../stores/neteaseStore.js";
 
-  const navItems = [
-    { path: "/", label: "🏠 主页" },
-    { path: "/collection", label: "❤️ 我的收藏" },
-    { path: "/visualizer", label: "🎵 音频可视化" },
-    { path: "/data-manage", label: "📁 数据管理" },
-  ];
+const navItems = [
+  { path: "/", label: "🏠 主页" },
+  { path: "/collection", label: "🦎 本地音乐" },
+  { path: "/visualizer", label: "🎵 音频可视化" },
+  { path: "/data-manage", label: "📁 数据管理" },
+];
 </script>
 
 <div class="navbar bg-base-200 shadow-md px-4">

@@ -1,23 +1,24 @@
 <!-- src/lib/components/Player.svelte -->
 <script>
   import {
-    currentSong,
-    isPlaying,
-    volume,
-    playbackRate,
-    currentTime,
-    duration,
-    playMode,
-    lyricOffset,
-    togglePlay,
-    nextTrack,
-    prevTrack,
-    setVolume,
-    setPlaybackRate,
-    seekTo,
-    togglePlayMode,
-  } from "../stores/playerStore.js";
-
+  currentSong,
+  isPlaying,
+  isTrackLoading,
+  playbackError,
+  volume,
+  playbackRate,
+  currentTime,
+  duration,
+  playMode,
+  lyricOffset,
+  togglePlay,
+  nextTrack,
+  prevTrack,
+  setVolume,
+  setPlaybackRate,
+  seekTo,
+  togglePlayMode,
+} from "../stores/playerStore.js";
   const rateOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
   let showLyrics = false;
   let lyricsContainer;
@@ -132,9 +133,14 @@
 
     <!-- 中间：播放控制 -->
     <div class="flex items-center gap-2">
-      <button class="btn btn-ghost btn-sm btn-circle" onclick={prevTrack} title="上一首">
-        ⏮
-      </button>
+      <button
+      class="btn btn-ghost btn-sm btn-circle"
+      onclick={prevTrack}
+      disabled={$isTrackLoading}
+      title="上一首"
+    >
+      ⏮
+    </button>
 
       <button
         class="btn btn-ghost btn-xs btn-circle"
@@ -147,16 +153,26 @@
       </button>
 
       <button
-        class="btn btn-primary btn-sm btn-circle"
-        onclick={togglePlay}
-        title={$isPlaying ? "暂停" : "播放"}
-      >
+      class="btn btn-primary btn-sm btn-circle"
+      onclick={togglePlay}
+      disabled={$isTrackLoading}
+      title={$isPlaying ? "暂停" : "播放"}
+    >
+      {#if $isTrackLoading}
+        <span class="loading loading-spinner loading-xs"></span>
+      {:else}
         {$isPlaying ? "⏸" : "▶"}
-      </button>
+      {/if}
+    </button>
 
-      <button class="btn btn-ghost btn-sm btn-circle" onclick={nextTrack} title="下一首">
-        ⏭
-      </button>
+    <button
+    class="btn btn-ghost btn-sm btn-circle"
+    onclick={nextTrack}
+    disabled={$isTrackLoading}
+    title="下一首"
+  >
+    ⏭
+  </button>
     </div>
 
     <!-- 右侧：倍速 + 音量 -->
@@ -216,8 +232,14 @@
       <h2 class="text-xl font-bold text-center flex-shrink-0">
         {$currentSong?.title || "未选择歌曲"}
       </h2>
-      <p class="text-center text-base-content/60 mb-3 flex-shrink-0">
-        {$currentSong?.artist || "未知艺术家"}
+      <p class="text-xs text-base-content/60 truncate">
+        {#if $playbackError}
+          <span class="text-error">{$playbackError}</span>
+        {:else if $isTrackLoading}
+          <span class="text-primary">正在获取播放地址...</span>
+        {:else}
+          {$currentSong?.artist || "未知艺术家"}
+        {/if}
       </p>
 
       <!-- 歌词区域 -->

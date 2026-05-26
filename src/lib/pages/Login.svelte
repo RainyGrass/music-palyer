@@ -41,7 +41,7 @@
   // 只有已保存 cookie 时才自动检查登录状态
   if ($neteaseCookie) {
     checkLoginStatus().then((ok) => {
-      if (ok) navigate("/user");
+      if (ok) navigate("/");
     });
   }
 
@@ -138,7 +138,7 @@
             });
         }
         await checkLoginStatus();
-        navigate("/user");
+        navigate("/");
         return;
       } else if (code === 800) {
         qrStatus = "二维码已过期，正在刷新...";
@@ -238,7 +238,7 @@
       if (res?.code === 200) {
         if (res.cookie) neteaseCookie.set(res.cookie);
         await checkLoginStatus();
-        navigate("/user");
+        navigate("/");
       } else {
         errorMsg = res?.message || "登录失败";
       }
@@ -266,7 +266,7 @@
       if (res?.code === 200) {
         if (res.cookie) neteaseCookie.set(res.cookie);
         await checkLoginStatus();
-        navigate("/user");
+        navigate("/");
       } else {
         errorMsg = res?.message || "登录失败";
       }

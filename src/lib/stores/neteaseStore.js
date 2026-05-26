@@ -170,3 +170,358 @@ export async function logoutNcm() {
   neteaseCookie.set("");
   localStorage.removeItem("ncm-cookie");
 }
+
+// ========== 网易云主页数据 ==========
+
+export const likedSongs = writable([]);
+export const userPlaylists = writable([]);
+export const ncmSearchResults = writable([]);
+
+export const ncmLoading = writable(false);
+export const ncmError = writable("");
+
+// 简单内存缓存
+const searchCache = new Map();
+const playlistSongsCache = new Map();
+const songUrlCache = new Map();
+
+/**
+ * 将网易云歌曲对象转换为播放器统一格式
+ */
+export function normalizeNcmSong(song) {
+  if (!song) return null;
+
+  const album = song.al || song.album || {};
+  const artists = song.ar || song.artists || [];
+
+  return {
+    id: song.id,
+    title: song.name || "未知歌曲",
+    artist: artists.length > 0 ? artists.map((a) => a.name).join(" / ") : "未知歌手",
+    album: album.name || "",
+    cover: album.picUrl || "",
+    duration: song.dt || song.duration || 0,
+    url: "",
+    lyrics: null,
+    source: "netease",
+    filename: "网易云音乐",
+  };
+}
+
+/**
+ * 获取歌曲播放地址，带缓存
+ */
+export async function fetchNcmSongUrls(ids = []) {
+  const validIds = ids.filter(Boolean);
+
+  if (!validIds.length) return new Map();
+
+  const resultMap = new Map();
+  const needFetchIds = [];
+
+  for (const id of validIds) {
+    if (songUrlCache.has(id)) {
+      resultMap.set(id, songUrlCache.get(id));
+    } else {
+      needFetchIds.push(id);
+    }
+  }
+
+  if (!needFetchIds.length) {
+    return resultMap;
+  }
+
+  const idText = needFetchIds.join(",");
+  let data;
+
+  try {
+    data = await ncmFetch("/song/url/v1", {
+      id: idText,
+      level: "standard",
+    });
+  } catch (e) {
+    console.warn("/song/url/v1 获取失败，尝试 /song/url", e);
+    data = await ncmFetch("/song/url", {
+      id: idText,
+    });
+  }
+
+  for (const item of data?.data || []) {
+    if (item?.id) {
+      const url = item.url || "";
+      songUrlCache.set(item.id, url);
+      resultMap.set(item.id, url);
+    }
+  }
+
+  return resultMap;
+}
+
+/**
+ * 只给指定歌曲补充播放地址
+ */
+export async function prepareNcmSongForPlay(song) {
+  if (!song?.id) return song;
+
+  if (song.url) return song;
+
+  const urlMap = await fetchNcmSongUrls([song.id]);
+
+  return {
+    ...song,
+    url: urlMap.get(song.id) || "",
+  };
+}
+
+/**
+ * 给歌曲列表补充播放地址
+ * 注意：这个函数仍然保留，但不建议对大列表直接调用
+ */
+export async function prepareNcmSongsForPlay(songs = []) {
+  const ids = songs.map((s) => s.id).filter(Boolean);
+  const urlMap = await fetchNcmSongUrls(ids);
+
+  return songs.map((song) => ({
+    ...song,
+    url: urlMap.get(song.id) || song.url || "",
+  }));
+}
+
+/**
+ * 获取我喜欢的音乐
+ */
+export async function fetchLikedSongs(limit = 50) {
+  ncmError.set("");
+
+  let user = getStoreValue(neteaseUser);
+
+  if (!user?.userId) {
+    const ok = await checkLoginStatus();
+    if (!ok) {
+      likedSongs.set([]);
+      return [];
+    }
+    user = getStoreValue(neteaseUser);
+  }
+
+  try {
+    ncmLoading.set(true);
+
+    const likeRes = await ncmFetch("/likelist", {
+      uid: user.userId,
+    });
+
+    const ids = likeRes?.ids || [];
+
+    if (!ids.length) {
+      likedSongs.set([]);
+      return [];
+    }
+
+    const limitedIds = ids.slice(0, limit);
+
+    const detailRes = await ncmFetch("/song/detail", {
+      ids: limitedIds.join(","),
+    });
+
+    const songs = (detailRes?.songs || [])
+      .map(normalizeNcmSong)
+      .filter(Boolean);
+
+    likedSongs.set(songs);
+    return songs;
+  } catch (e) {
+    console.error("获取喜欢的歌曲失败", e);
+    ncmError.set("获取喜欢的歌曲失败：" + (e.message || "未知错误"));
+    likedSongs.set([]);
+    return [];
+  } finally {
+    ncmLoading.set(false);
+  }
+}
+
+/**
+ * 获取用户歌单
+ */
+export async function fetchUserPlaylists(limit = 30) {
+  ncmError.set("");
+
+  let user = getStoreValue(neteaseUser);
+
+  if (!user?.userId) {
+    const ok = await checkLoginStatus();
+    if (!ok) {
+      userPlaylists.set([]);
+      return [];
+    }
+    user = getStoreValue(neteaseUser);
+  }
+
+  try {
+    ncmLoading.set(true);
+
+    const res = await ncmFetch("/user/playlist", {
+      uid: user.userId,
+      limit,
+    });
+
+    const lists = res?.playlist || [];
+    userPlaylists.set(lists);
+    return lists;
+  } catch (e) {
+    console.error("获取用户歌单失败", e);
+    ncmError.set("获取用户歌单失败：" + (e.message || "未知错误"));
+    userPlaylists.set([]);
+    return [];
+  } finally {
+    ncmLoading.set(false);
+  }
+}
+
+/**
+ * 搜索网易云歌曲，支持分页
+ */
+export async function searchNcmSongs(keyword, limit = 30, offset = 0, append = false) {
+  ncmError.set("");
+
+  const keywords = keyword?.trim();
+
+  if (!keywords) {
+    if (!append) ncmSearchResults.set([]);
+    return [];
+  }
+
+  const cacheKey = `search:${keywords}:${limit}:${offset}`;
+
+  if (searchCache.has(cacheKey)) {
+    const cachedSongs = searchCache.get(cacheKey);
+
+    if (append) {
+      ncmSearchResults.update((old) => {
+        const ids = new Set(old.map((s) => s.id));
+        const merged = [...old];
+
+        for (const song of cachedSongs) {
+          if (!ids.has(song.id)) merged.push(song);
+        }
+
+        return merged;
+      });
+    } else {
+      ncmSearchResults.set(cachedSongs);
+    }
+
+    return cachedSongs;
+  }
+
+  try {
+    ncmLoading.set(true);
+
+    let res;
+
+    try {
+      res = await ncmFetch("/cloudsearch", {
+        keywords,
+        type: 1,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      console.warn("/cloudsearch 搜索失败，尝试 /search", e);
+
+      res = await ncmFetch("/search", {
+        keywords,
+        type: 1,
+        limit,
+        offset,
+      });
+    }
+
+    const songs = (res?.result?.songs || [])
+      .map(normalizeNcmSong)
+      .filter(Boolean);
+
+    searchCache.set(cacheKey, songs);
+
+    if (append) {
+      ncmSearchResults.update((old) => {
+        const ids = new Set(old.map((s) => s.id));
+        const merged = [...old];
+
+        for (const song of songs) {
+          if (!ids.has(song.id)) merged.push(song);
+        }
+
+        return merged;
+      });
+    } else {
+      ncmSearchResults.set(songs);
+    }
+
+    return songs;
+  } catch (e) {
+    console.error("搜索歌曲失败", e);
+    ncmError.set("搜索歌曲失败：" + (e.message || "未知错误"));
+
+    if (!append) {
+      ncmSearchResults.set([]);
+    }
+
+    return [];
+  } finally {
+    ncmLoading.set(false);
+  }
+}
+
+/**
+ * 获取歌单歌曲，支持分页
+ */
+export async function fetchPlaylistSongs(playlistId, limit = 50, offset = 0) {
+  if (!playlistId) return [];
+
+  const cacheKey = `playlist:${playlistId}:${limit}:${offset}`;
+
+  if (playlistSongsCache.has(cacheKey)) {
+    return playlistSongsCache.get(cacheKey);
+  }
+
+  try {
+    ncmLoading.set(true);
+    ncmError.set("");
+
+    let res;
+
+    try {
+      res = await ncmFetch("/playlist/track/all", {
+        id: playlistId,
+        limit,
+        offset,
+      });
+    } catch (e) {
+      console.warn("/playlist/track/all 获取失败，尝试 /playlist/detail", e);
+
+      res = await ncmFetch("/playlist/detail", {
+        id: playlistId,
+      });
+    }
+
+    let rawSongs = res?.songs || res?.playlist?.tracks || [];
+
+    // 如果 fallback 到 /playlist/detail，它可能一次返回全部，这里手动分页
+    if (res?.playlist?.tracks && Array.isArray(res.playlist.tracks)) {
+      rawSongs = res.playlist.tracks.slice(offset, offset + limit);
+    }
+
+    const songs = rawSongs.map(normalizeNcmSong).filter(Boolean);
+
+    playlistSongsCache.set(cacheKey, songs);
+
+    return songs;
+  } catch (e) {
+    console.error("获取歌单歌曲失败", e);
+    ncmError.set("获取歌单歌曲失败：" + (e.message || "未知错误"));
+    return [];
+  } finally {
+    ncmLoading.set(false);
+  }
+}
