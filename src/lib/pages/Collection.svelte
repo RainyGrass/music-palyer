@@ -174,7 +174,6 @@ import {
       const allFiles = await scanDirectoryRecursive(folder);
 
       songs = allFiles;
-      playlist.set(songs);
       scanning = false;
 
       localStorage.setItem("lastFolder", folder);
@@ -192,7 +191,6 @@ import {
     if (raw) {
       try {
         songs = JSON.parse(raw);
-        playlist.set(songs);
         selectedFolder = folder || "已恢复的列表";
       } catch (e) {
         console.error("恢复失败", e);
