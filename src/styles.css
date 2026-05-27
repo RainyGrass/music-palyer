@@ -1,28 +1,163 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
+/* ========== 主题变量：柔和明亮 + 现代暗色 ========== */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --app-bg:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(236, 72, 153, 0.11), transparent 32%),
+    radial-gradient(circle at bottom, rgba(34, 197, 94, 0.07), transparent 34%),
+    linear-gradient(135deg, #09090d 0%, #11111a 46%, #08080c 100%);
+
+  --glass-panel-bg: rgba(15, 15, 20, 0.72);
+  --glass-panel-border: rgba(255, 255, 255, 0.12);
+  --glass-panel-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  --glass-card-bg:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.09),
+      rgba(255, 255, 255, 0.035)
+    );
+  --glass-card-border: rgba(255, 255, 255, 0.11);
+  --glass-card-shadow:
+    0 14px 35px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  --glass-hover-bg: rgba(255, 255, 255, 0.105);
+  --glass-hover-border: rgba(255, 255, 255, 0.22);
+  --glass-hover-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.32),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  --icon-btn-bg: rgba(255, 255, 255, 0.055);
+  --icon-btn-hover-bg: rgba(255, 255, 255, 0.12);
+
+  --soft-gradient:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(236, 72, 153, 0.12), transparent 32%),
+    radial-gradient(circle at bottom, rgba(34, 197, 94, 0.08), transparent 34%);
+
+  --modal-backdrop: rgba(0, 0, 0, 0.8);
+
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.32);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  /*
+    柔和明亮主题：
+    避免纯白刺眼，整体使用奶油白、暖灰、低饱和浅色渐变。
+  */
+  --app-bg:
+    radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 34%),
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.14), transparent 30%),
+    radial-gradient(circle at bottom, rgba(45, 212, 191, 0.11), transparent 34%),
+    linear-gradient(135deg, #f7f3ea 0%, #f3efe7 44%, #ece7dd 100%);
+
+  --glass-panel-bg: rgba(255, 252, 245, 0.74);
+  --glass-panel-border: rgba(120, 99, 72, 0.18);
+  --glass-panel-shadow:
+    0 18px 45px rgba(120, 99, 72, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+
+  --glass-card-bg:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.72),
+      rgba(255, 248, 236, 0.48)
+    );
+  --glass-card-border: rgba(120, 99, 72, 0.16);
+  --glass-card-shadow:
+    0 14px 35px rgba(120, 99, 72, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+
+  --glass-hover-bg: rgba(255, 255, 255, 0.82);
+  --glass-hover-border: rgba(120, 99, 72, 0.28);
+  --glass-hover-shadow:
+    0 18px 45px rgba(120, 99, 72, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78);
+
+  --icon-btn-bg: rgba(255, 255, 255, 0.52);
+  --icon-btn-hover-bg: rgba(255, 255, 255, 0.86);
+
+  --soft-gradient:
+    radial-gradient(circle at top left, rgba(129, 140, 248, 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.13), transparent 32%),
+    radial-gradient(circle at bottom, rgba(45, 212, 191, 0.1), transparent 34%);
+
+  --modal-backdrop: rgba(30, 24, 18, 0.44);
+
+  --scrollbar-thumb: rgba(120, 99, 72, 0.24);
+  --scrollbar-thumb-hover: rgba(120, 99, 72, 0.38);
+}
+
+/* ========== DaisyUI 柔和明亮主题细调 ========== */
+
+[data-theme="light"] {
+  --fallback-b1: #f7f3ea;
+  --fallback-b2: #eee8dc;
+  --fallback-b3: #e3dbce;
+  --fallback-bc: #2f2a24;
+
+  --fallback-p: #7c6ee6;
+  --fallback-pc: #ffffff;
+  --fallback-s: #b7791f;
+  --fallback-sc: #ffffff;
+  --fallback-a: #0f9488;
+  --fallback-ac: #ffffff;
+  --fallback-n: #5f5549;
+  --fallback-nc: #ffffff;
+}
+
+/* ========== 全局布局：不禁止滚动 ========== */
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  background: var(--app-bg);
+  background-attachment: fixed;
+  color: hsl(var(--bc));
+  transition:
+    background 220ms ease,
+    color 220ms ease;
+}
+
+.app-main {
+  position: relative;
+}
+
 /* ========== 现代玻璃质感通用样式 ========== */
 
 .glass-panel {
-  background: rgba(15, 15, 20, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    0 18px 45px rgba(0, 0, 0, 0.28),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: var(--glass-panel-bg);
+  border: 1px solid var(--glass-panel-border);
+  box-shadow: var(--glass-panel-shadow);
   backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
 
 .glass-card {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.09),
-    rgba(255, 255, 255, 0.035)
-  );
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  box-shadow:
-    0 14px 35px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: var(--glass-card-bg);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: var(--glass-card-shadow);
   backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
 }
@@ -39,12 +174,9 @@
 
 .glass-hover:hover {
   transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.105);
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow:
-    0 18px 45px rgba(0, 0, 0, 0.32),
-    0 0 0 1px rgba(255, 255, 255, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: var(--glass-hover-bg);
+  border-color: var(--glass-hover-border);
+  box-shadow: var(--glass-hover-shadow);
 }
 
 .glass-hover:active {
@@ -57,8 +189,8 @@
   justify-content: center;
   gap: 0.45rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid rgba(255, 255, 255, 0.11);
+  background: var(--icon-btn-bg);
+  border: 1px solid var(--glass-card-border);
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
   transition:
@@ -71,8 +203,14 @@
 
 .icon-btn-glass:hover {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.22);
+  background: var(--icon-btn-hover-bg);
+  border-color: var(--glass-hover-border);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+[data-theme="dark"] .icon-btn-glass:hover {
   box-shadow:
     0 10px 26px rgba(0, 0, 0, 0.24),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
@@ -87,10 +225,40 @@
 }
 
 .soft-gradient-bg {
-  background:
-    radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 34%),
-    radial-gradient(circle at top right, rgba(236, 72, 153, 0.12), transparent 32%),
-    radial-gradient(circle at bottom, rgba(34, 197, 94, 0.08), transparent 34%);
+  background: var(--soft-gradient);
+}
+
+.lyric-modal-backdrop {
+  background: var(--modal-backdrop);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.theme-toggle-pill {
+  min-width: 4.7rem;
+}
+
+/* 表格在明亮主题下更柔和 */
+[data-theme="light"] .table-zebra tbody tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.34);
+}
+
+[data-theme="light"] .table-zebra tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.62);
+}
+
+/* 输入类控件在玻璃背景上更统一 */
+[data-theme="light"] .input,
+[data-theme="light"] .select,
+[data-theme="light"] .textarea {
+  background-color: rgba(255, 255, 255, 0.58);
+  border-color: rgba(120, 99, 72, 0.18);
+}
+
+[data-theme="dark"] .input,
+[data-theme="dark"] .select,
+[data-theme="dark"] .textarea {
+  background-color: rgba(20, 20, 28, 0.58);
 }
 
 /* 更柔和的滚动条 */
@@ -104,10 +272,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--scrollbar-thumb);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.32);
+  background: var(--scrollbar-thumb-hover);
 }

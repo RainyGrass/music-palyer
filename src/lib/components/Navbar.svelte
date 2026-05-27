@@ -1,17 +1,18 @@
 <!-- src/lib/components/Navbar.svelte -->
 <script>
   import {
-  Music2,
-  Home,
-  FolderOpen,
-  AudioLines,
-  Database,
-  Cloud,
-  User,
-} from "lucide-svelte";
+    Music2,
+    Home,
+    FolderOpen,
+    AudioLines,
+    Database,
+    Cloud,
+    User,
+  } from "lucide-svelte";
 
   import { currentRoute, navigate } from "../stores/router.js";
   import { neteaseUser } from "../stores/neteaseStore.js";
+  import { theme } from "../stores/themeStore.js";
 
   const navItems = [
     { path: "/", label: "主页", icon: Home },
@@ -53,6 +54,15 @@
   </div>
 
   <div class="navbar-end gap-2">
+    <button
+      class="btn btn-sm rounded-full icon-btn-glass theme-toggle-pill"
+      onclick={() => theme.toggleTheme()}
+      title={$theme === "dark" ? "切换到明亮主题" : "切换到暗色主题"}
+    >
+      <span class="text-base leading-none">{$theme === "dark" ? "☀" : "☾"}</span>
+      <span class="hidden sm:inline">{$theme === "dark" ? "明亮" : "暗色"}</span>
+    </button>
+
     {#if $neteaseUser}
       <button
         class="btn btn-ghost btn-circle avatar glass-hover"

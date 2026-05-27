@@ -236,10 +236,10 @@
     <!-- 右侧：倍速 + 音量 -->
     <div class="flex items-center gap-3 w-1/4 justify-end">
       <select
-        class="select select-bordered select-xs w-20 bg-base-100/60"
-        value={$playbackRate}
-        onchange={handleRate}
-      >
+      class="select select-bordered select-xs w-20"
+      value={$playbackRate}
+      onchange={handleRate}
+    >
         {#each rateOptions as rate}
           <option value={rate}>{rate}x</option>
         {/each}
@@ -266,9 +266,9 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
-    onclick={() => (showLyrics = false)}
-  >
+  class="fixed inset-0 z-[100] lyric-modal-backdrop flex items-center justify-center p-4"
+  onclick={() => (showLyrics = false)}
+>
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div

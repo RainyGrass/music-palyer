@@ -1,6 +1,8 @@
 <!-- src/App.svelte -->
 <script>
   import { currentRoute } from "./lib/stores/router.js";
+  import { theme } from "./lib/stores/themeStore.js";
+
   import Navbar from "./lib/components/Navbar.svelte";
   import Player from "./lib/components/Player.svelte";
 
@@ -12,10 +14,10 @@
   import UserProfile from "./lib/pages/UserProfile.svelte";
 </script>
 
-<div class="min-h-screen bg-base-100 flex flex-col" data-theme="dark">
+<div class="min-h-screen bg-base-100 flex flex-col app-shell" data-theme={$theme}>
   <Navbar />
 
-  <main class="flex-1 overflow-y-auto pb-28">
+  <main class="flex-1 overflow-y-auto pb-28 app-main">
     {#if $currentRoute === "/"}
       <Home />
     {:else if $currentRoute === "/collection"}

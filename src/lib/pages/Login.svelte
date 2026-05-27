@@ -414,7 +414,7 @@
 
     {#if errorMsg}
       <div class="alert alert-error mb-4 glass-card">
-        <span>{errorMsg}</span>
+        <span class="bg-amber-100">{errorMsg}</span>
       </div>
     {/if}
 
