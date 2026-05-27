@@ -20,6 +20,8 @@
     { path: "/visualizer", label: "音频可视化", icon: AudioLines },
     { path: "/data-manage", label: "数据管理", icon: Database },
   ];
+
+  $: isDarkTheme = $theme === "dark";
 </script>
 
 <div class="navbar glass-panel sticky top-0 z-40 px-4 border-b border-base-content/10">
@@ -57,10 +59,14 @@
     <button
       class="btn btn-sm rounded-full icon-btn-glass theme-toggle-pill"
       onclick={() => theme.toggleTheme()}
-      title={$theme === "dark" ? "切换到明亮主题" : "切换到暗色主题"}
+      title={isDarkTheme ? "切换到明亮主题" : "切换到暗色主题"}
     >
-      <span class="text-base leading-none">{$theme === "dark" ? "☀" : "☾"}</span>
-      <span class="hidden sm:inline">{$theme === "dark" ? "明亮" : "暗色"}</span>
+      <span class="text-base leading-none">
+        {isDarkTheme ? "☀" : "☾"}
+      </span>
+      <span class="hidden sm:inline">
+        {isDarkTheme ? "明亮" : "暗色"}
+      </span>
     </button>
 
     {#if $neteaseUser}

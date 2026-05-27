@@ -3,49 +3,69 @@ import { writable } from "svelte/store";
 
 const THEME_KEY = "music-player-theme";
 
+/**
+ * 统一主题值，兼容历史版本：
+ * - light
+ * - dark
+ * - music-light
+ * - music-dark
+ */
+function normalizeTheme(value) {
+  if (value === "light" || value === "music-light") return "light";
+  return "dark";
+}
+
 function getInitialTheme() {
   if (typeof localStorage === "undefined") return "dark";
 
   const savedTheme = localStorage.getItem(THEME_KEY);
+  return normalizeTheme(savedTheme);
+}
 
-  if (savedTheme === "light" || savedTheme === "dark") {
-    return savedTheme;
+function syncThemeToDom(theme) {
+  if (typeof document === "undefined") return;
+
+  document.documentElement.dataset.theme = theme;
+
+  if (document.body) {
+    document.body.dataset.theme = theme;
   }
+}
 
-  return "dark";
+function saveTheme(theme) {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(THEME_KEY, theme);
 }
 
 function createThemeStore() {
-  const { subscribe, set, update } = writable(getInitialTheme());
+  const initialTheme = getInitialTheme();
+  const { subscribe, set, update } = writable(initialTheme);
 
   function applyTheme(nextTheme) {
-    const safeTheme = nextTheme === "light" ? "light" : "dark";
+    const safeTheme = normalizeTheme(nextTheme);
 
+    syncThemeToDom(safeTheme);
+    saveTheme(safeTheme);
     set(safeTheme);
-
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(THEME_KEY, safeTheme);
-    }
-
-    if (typeof document !== "undefined") {
-      document.documentElement.dataset.theme = safeTheme;
-    }
   }
 
   return {
     subscribe,
-    setTheme: applyTheme,
+
+    init() {
+      applyTheme(getInitialTheme());
+    },
+
+    setTheme(nextTheme) {
+      applyTheme(nextTheme);
+    },
+
     toggleTheme() {
       update((currentTheme) => {
-        const nextTheme = currentTheme === "dark" ? "light" : "dark";
+        const nextTheme = normalizeTheme(currentTheme) === "dark" ? "light" : "dark";
 
-        if (typeof localStorage !== "undefined") {
-          localStorage.setItem(THEME_KEY, nextTheme);
-        }
-
-        if (typeof document !== "undefined") {
-          document.documentElement.dataset.theme = nextTheme;
-        }
+        syncThemeToDom(nextTheme);
+        saveTheme(nextTheme);
 
         return nextTheme;
       });

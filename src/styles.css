@@ -1,16 +1,55 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
-/* ========== 主题变量：柔和明亮 + 现代暗色 ========== */
+/* ========== 主题变量：现代暗色 + 柔和明亮 ========== */
 
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
 
+  /* DaisyUI 5 主题变量 */
+  --color-base-100: #09090d;
+  --color-base-200: #11111a;
+  --color-base-300: #1c1d28;
+  --color-base-content: #f1f3f8;
+
+  --color-primary: #8b8cf6;
+  --color-primary-content: #ffffff;
+  --color-secondary: #d87adf;
+  --color-secondary-content: #ffffff;
+  --color-accent: #5ec6a8;
+  --color-accent-content: #071411;
+
+  --color-neutral: #242633;
+  --color-neutral-content: #f2f3f8;
+  --color-info: #67b7f7;
+  --color-info-content: #061018;
+  --color-success: #69d19c;
+  --color-success-content: #06150d;
+  --color-warning: #e8bd63;
+  --color-warning-content: #211604;
+  --color-error: #f07987;
+  --color-error-content: #21070b;
+
+  /* 兼容部分旧变量使用 */
+  --fallback-b1: #09090d;
+  --fallback-b2: #11111a;
+  --fallback-b3: #1c1d28;
+  --fallback-bc: #f1f3f8;
+
+  --fallback-p: #8b8cf6;
+  --fallback-pc: #ffffff;
+  --fallback-s: #d87adf;
+  --fallback-sc: #ffffff;
+  --fallback-a: #5ec6a8;
+  --fallback-ac: #071411;
+  --fallback-n: #242633;
+  --fallback-nc: #f2f3f8;
+
   --app-bg:
-    radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 34%),
-    radial-gradient(circle at top right, rgba(236, 72, 153, 0.11), transparent 32%),
-    radial-gradient(circle at bottom, rgba(34, 197, 94, 0.07), transparent 34%),
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.2), transparent 34%),
+    radial-gradient(circle at top right, rgba(236, 72, 153, 0.13), transparent 32%),
+    radial-gradient(circle at bottom, rgba(34, 197, 94, 0.08), transparent 34%),
     linear-gradient(135deg, #09090d 0%, #11111a 46%, #08080c 100%);
 
   --glass-panel-bg: rgba(15, 15, 20, 0.72);
@@ -54,9 +93,48 @@
 [data-theme="light"] {
   color-scheme: light;
 
+  /* DaisyUI 5 主题变量 */
+  --color-base-100: #f7f3ea;
+  --color-base-200: #eee8dc;
+  --color-base-300: #e3dbce;
+  --color-base-content: #2f2a24;
+
+  --color-primary: #7c6ee6;
+  --color-primary-content: #ffffff;
+  --color-secondary: #b779b8;
+  --color-secondary-content: #ffffff;
+  --color-accent: #0f9488;
+  --color-accent-content: #ffffff;
+
+  --color-neutral: #5f5549;
+  --color-neutral-content: #fffaf2;
+  --color-info: #4f8fc7;
+  --color-info-content: #ffffff;
+  --color-success: #4d9d70;
+  --color-success-content: #ffffff;
+  --color-warning: #b48135;
+  --color-warning-content: #fffaf2;
+  --color-error: #c76470;
+  --color-error-content: #ffffff;
+
+  /* 兼容部分旧变量使用 */
+  --fallback-b1: #f7f3ea;
+  --fallback-b2: #eee8dc;
+  --fallback-b3: #e3dbce;
+  --fallback-bc: #2f2a24;
+
+  --fallback-p: #7c6ee6;
+  --fallback-pc: #ffffff;
+  --fallback-s: #b779b8;
+  --fallback-sc: #ffffff;
+  --fallback-a: #0f9488;
+  --fallback-ac: #ffffff;
+  --fallback-n: #5f5549;
+  --fallback-nc: #fffaf2;
+
   /*
     柔和明亮主题：
-    避免纯白刺眼，整体使用奶油白、暖灰、低饱和浅色渐变。
+    不用纯白，使用奶油白、暖灰、低饱和浅色渐变。
   */
   --app-bg:
     radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 34%),
@@ -102,24 +180,6 @@
   --scrollbar-thumb-hover: rgba(120, 99, 72, 0.38);
 }
 
-/* ========== DaisyUI 柔和明亮主题细调 ========== */
-
-[data-theme="light"] {
-  --fallback-b1: #f7f3ea;
-  --fallback-b2: #eee8dc;
-  --fallback-b3: #e3dbce;
-  --fallback-bc: #2f2a24;
-
-  --fallback-p: #7c6ee6;
-  --fallback-pc: #ffffff;
-  --fallback-s: #b7791f;
-  --fallback-sc: #ffffff;
-  --fallback-a: #0f9488;
-  --fallback-ac: #ffffff;
-  --fallback-n: #5f5549;
-  --fallback-nc: #ffffff;
-}
-
 /* ========== 全局布局：不禁止滚动 ========== */
 
 html,
@@ -127,14 +187,20 @@ body {
   min-height: 100%;
 }
 
+html {
+  background: var(--app-bg);
+}
+
 body {
   margin: 0;
+  background: var(--app-bg);
+  color: var(--color-base-content);
 }
 
 .app-shell {
   background: var(--app-bg);
   background-attachment: fixed;
-  color: hsl(var(--bc));
+  color: var(--color-base-content);
   transition:
     background 220ms ease,
     color 220ms ease;
@@ -152,14 +218,54 @@ body {
   box-shadow: var(--glass-panel-shadow);
   backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
+  transform: translateZ(0);
+  will-change: backdrop-filter, background;
+  background-clip: padding-box;
 }
 
 .glass-card {
+  position: relative;
   background: var(--glass-card-bg);
   border: 1px solid var(--glass-card-border);
   box-shadow: var(--glass-card-shadow);
   backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
+  transform: translateZ(0);
+  will-change: backdrop-filter, background;
+  background-clip: padding-box;
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.16),
+      transparent 38%,
+      rgba(255, 255, 255, 0.04)
+    );
+  opacity: 0.55;
+  z-index: 0;
+}
+
+[data-theme="light"] .glass-card::before {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.48),
+      transparent 42%,
+      rgba(255, 255, 255, 0.16)
+    );
+  opacity: 0.7;
+}
+
+.glass-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .glass-hover {
@@ -193,6 +299,8 @@ body {
   border: 1px solid var(--glass-card-border);
   backdrop-filter: blur(14px) saturate(150%);
   -webkit-backdrop-filter: blur(14px) saturate(150%);
+  transform: translateZ(0);
+  background-clip: padding-box;
   transition:
     transform 160ms ease,
     background 160ms ease,
@@ -259,6 +367,22 @@ body {
 [data-theme="dark"] .select,
 [data-theme="dark"] .textarea {
   background-color: rgba(20, 20, 28, 0.58);
+}
+
+/* DaisyUI 部分组件在玻璃背景上的统一微调 */
+.card,
+.table,
+.alert,
+.input,
+.select,
+.textarea,
+.btn {
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease;
 }
 
 /* 更柔和的滚动条 */

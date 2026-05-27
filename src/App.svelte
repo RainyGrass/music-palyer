@@ -1,5 +1,6 @@
 <!-- src/App.svelte -->
 <script>
+  import { onMount } from "svelte";
   import { currentRoute } from "./lib/stores/router.js";
   import { theme } from "./lib/stores/themeStore.js";
 
@@ -12,9 +13,13 @@
   import DataManage from "./lib/pages/DataManage.svelte";
   import Login from "./lib/pages/Login.svelte";
   import UserProfile from "./lib/pages/UserProfile.svelte";
+
+  onMount(() => {
+    theme.init();
+  });
 </script>
 
-<div class="min-h-screen bg-base-100 flex flex-col app-shell" data-theme={$theme}>
+<div class="min-h-screen flex flex-col app-shell" data-theme={$theme}>
   <Navbar />
 
   <main class="flex-1 overflow-y-auto pb-28 app-main">
