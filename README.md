@@ -5,3 +5,6 @@
 技术栈 ：`vite+tauri2+svelte5`
 组件库 ：`tailwindcss`
 包管理器 ：`bun`
+
+
+api服务地址："https://api-enhanced-ten-virid.vercel.app"
