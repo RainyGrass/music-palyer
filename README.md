@@ -7,4 +7,4 @@
 包管理器 ：`bun`
 
 
-api服务地址："https://api-enhanced-ten-virid.vercel.app"
+api服务地址："https://www.cclqzw.xyz"
